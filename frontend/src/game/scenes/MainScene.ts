@@ -503,7 +503,11 @@ export class MainScene extends Phaser.Scene {
     let user = { id: 'guest', name: 'Гость' };
     if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
       const u = tg.initDataUnsafe.user;
-      user = { id: u.id, name: u.username || u.first_name || 'User' };
+      console.log('Telegram user:', u);
+      user = {
+        id: u.id,
+        name: u.username || u.first_name || u.last_name || 'User'
+      };
     }
     try {
       await fetch('https://mergefruitadventure.onrender.com/leaderboard', {

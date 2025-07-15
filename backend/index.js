@@ -14,10 +14,21 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 // Добавить/обновить результат игрока
 app.post('/leaderboard', async (req, res) => {
   const { id, username, score } = req.body;
-  const { error } = await supabase
+
+  // Получаем текущий рекорд
+  const { data: existing } = await supabase
     .from('leaderboard')
-    .upsert([{ id, username, score }]);
-  if (error) return res.status(500).json({ error: error.message });
+    .select('score')
+    .eq('id', id)
+    .single();
+
+  // Сохраняем только если новый счёт больше
+  if (!existing || score > existing.score) {
+    const { error } = await supabase
+      .from('leaderboard')
+      .upsert([{ id, username, score }]);
+    if (error) return res.status(500).json({ error: error.message });
+  }
 
   // Получить топ-10
   const { data: top } = await supabase
