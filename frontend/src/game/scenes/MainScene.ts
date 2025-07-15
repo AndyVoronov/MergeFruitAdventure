@@ -462,7 +462,7 @@ export class MainScene extends Phaser.Scene {
     this.scoreText.setText(i18next.t('score') + ': ' + this.score);
   }
 
-  endGame() {
+  async endGame() {
     this.gameOver = true;
     // Затемнение фона
     const overlay = this.add.rectangle(this.scale.width / 2, this.scale.height / 2, this.scale.width, this.scale.height, 0x111111, 0.7)
@@ -497,7 +497,7 @@ export class MainScene extends Phaser.Scene {
       this.restartButton.on('pointerover', () => this.restartButton && this.restartButton.setStyle({ backgroundColor: '#fff066', color: '#000' }));
       this.restartButton.on('pointerout', () => this.restartButton && this.restartButton.setStyle({ backgroundColor: '#ffe066', color: '#222' }));
     }
-    // --- Сохраняем рекорд в localStorage с привязкой к Telegram ---
+    // --- Сохраняем рекорд в Supabase через backend ---
     // @ts-ignore
     const tg = window.Telegram?.WebApp;
     let user = { id: 'guest', name: 'Гость' };
@@ -505,23 +505,16 @@ export class MainScene extends Phaser.Scene {
       const u = tg.initDataUnsafe.user;
       user = { id: u.id, name: u.username || u.first_name || 'User' };
     }
-    const record = { id: user.id, name: user.name, score: this.score };
-    let leaders = [];
     try {
-      leaders = JSON.parse(localStorage.getItem('leaders') || '[]');
-    } catch (e) { leaders = []; }
-    // Если у пользователя уже есть рекорд — обновляем только если новый больше
-    const idx = leaders.findIndex((r: any) => r.id === record.id);
-    if (idx >= 0) {
-      if (record.score > leaders[idx].score) leaders[idx].score = record.score;
-    } else {
-      leaders.push(record);
+      await fetch('https://mergefruitadventure.onrender.com/leaderboard', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: user.id, username: user.name, score: this.score })
+      });
+    } catch (e) {
+      // Можно вывести ошибку пользователю
+      console.error('Ошибка отправки результата в таблицу лидеров:', e);
     }
-    // Сортируем по убыванию
-    leaders.sort((a: any, b: any) => b.score - a.score);
-    // Оставляем топ-10
-    leaders = leaders.slice(0, 10);
-    localStorage.setItem('leaders', JSON.stringify(leaders));
   }
 
   spawnFruit(x: number, y: number) {
@@ -653,33 +646,28 @@ export class MainScene extends Phaser.Scene {
   }
 
   // --- Модальное окно таблицы лидеров ---
-  showLeadersModal() {
-    // Удаляем старое окно, если есть
+  async showLeadersModal() {
     if (this.leadersModal) this.leadersModal.destroy(true);
-    // Получаем лидеров
-    let leaders = [];
-    try {
-      leaders = JSON.parse(localStorage.getItem('leaders') || '[]');
-    } catch (e) { leaders = []; }
     // @ts-ignore
     const tg = window.Telegram?.WebApp;
     let userId = 'guest';
     if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
       userId = tg.initDataUnsafe.user.id;
     }
-    // Затемнение
+    let leaders = [];
+    let place = null;
+    try {
+      const res = await fetch(`https://mergefruitadventure.onrender.com/leaderboard/${userId}`);
+      const data = await res.json();
+      leaders = data.top || [];
+      place = data.place;
+    } catch (e) {
+      leaders = [];
+      place = null;
+    }
     const modalBg = this.add.rectangle(this.scale.width / 2, this.scale.height / 2, this.scale.width, this.scale.height, 0x111111, 0.7).setDepth(3000).setInteractive();
-    // Окно
     const modalPanel = this.add.rectangle(this.scale.width / 2, this.scale.height / 2, 340, 420, 0x222244, 0.97).setStrokeStyle(4, 0xffff99).setDepth(3001);
-    // Заголовок
     const title = this.add.text(this.scale.width / 2, this.scale.height / 2 - 180, window.t ? window.t('menu.leaderboard') : 'Таблица лидеров', { font: 'bold 30px Arial', color: '#fff', stroke: '#ff0', strokeThickness: 3 }).setOrigin(0.5).setDepth(3002);
-    // УДАЛЯЮ лишний цикл создания надписей без setName
-    // leaders.forEach((r: any, i: number) => {
-    //   const isYou = r.id === userId;
-    //   this.add.text(this.scale.width / 2 - 120, this.scale.height / 2 - 120 + i * 36, `${i + 1}. ${r.name}`, { font: '22px Arial', color: isYou ? '#ffe066' : '#fff', fontStyle: isYou ? 'bold' : 'normal' }).setDepth(3002);
-    //   this.add.text(this.scale.width / 2 + 80, this.scale.height / 2 - 120 + i * 36, r.score.toString(), { font: '22px Arial', color: isYou ? '#ffe066' : '#fff', fontStyle: isYou ? 'bold' : 'normal' }).setOrigin(1, 0).setDepth(3002);
-    // });
-    // Кнопка закрытия
     const closeBtn = this.add.text(this.scale.width / 2, this.scale.height / 2 + 170, window.t ? window.t('close') : 'Закрыть', { font: 'bold 24px Arial', color: '#222', backgroundColor: '#ffe066', padding: { left: 32, right: 32, top: 12, bottom: 12 } })
       .setOrigin(0.5)
       .setDepth(3002)
@@ -690,7 +678,6 @@ export class MainScene extends Phaser.Scene {
         modalPanel.destroy();
         title.destroy();
         closeBtn.destroy();
-        // Удаляем все строки лидеров
         for (let i = 0; i < leaders.length; i++) {
           const t1 = this.children.getByName('leader_name_' + i);
           const t2 = this.children.getByName('leader_score_' + i);
@@ -702,13 +689,16 @@ export class MainScene extends Phaser.Scene {
         this.input.on('pointerup', this._globalPointerDownHandler, this);
         return false;
       });
-    // Для удобства поиска — даём имена текстовым объектам
     leaders.forEach((r: any, i: number) => {
-      const t1 = this.add.text(this.scale.width / 2 - 120, this.scale.height / 2 - 120 + i * 36, `${i + 1}. ${r.name}`, { font: '22px Arial', color: r.id === userId ? '#ffe066' : '#fff', fontStyle: r.id === userId ? 'bold' : 'normal' }).setDepth(3002);
+      const t1 = this.add.text(this.scale.width / 2 - 120, this.scale.height / 2 - 120 + i * 36, `${i + 1}. ${r.username}`, { font: '22px Arial', color: r.id === userId ? '#ffe066' : '#fff', fontStyle: r.id === userId ? 'bold' : 'normal' }).setDepth(3002);
       t1.setName('leader_name_' + i);
       const t2 = this.add.text(this.scale.width / 2 + 80, this.scale.height / 2 - 120 + i * 36, r.score.toString(), { font: '22px Arial', color: r.id === userId ? '#ffe066' : '#fff', fontStyle: r.id === userId ? 'bold' : 'normal' }).setOrigin(1, 0).setDepth(3002);
       t2.setName('leader_score_' + i);
     });
-    this.leadersModal = modalPanel; // Сохраняем ссылку на модальное окно
+    // Показываем место игрока
+    if (place !== null) {
+      this.add.text(this.scale.width / 2, this.scale.height / 2 + 120, `Ваше место: ${place}`, { font: 'bold 22px Arial', color: '#ffe066' }).setOrigin(0.5).setDepth(3002);
+    }
+    this.leadersModal = modalPanel;
   }
 } 
