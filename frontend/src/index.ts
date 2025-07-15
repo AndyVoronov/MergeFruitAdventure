@@ -10,6 +10,11 @@ i18next.init({
   },
 });
 
+// @ts-ignore
+if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.ready) {
+  window.Telegram.WebApp.ready();
+}
+
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
   width: window.innerWidth,
@@ -37,6 +42,7 @@ const game = new Phaser.Game(config);
 // Объявляем глобальные переменные для TS
 declare global {
   interface Window {
+    Telegram?: any;
     t?: (key: string) => string;
     game?: any;
   }
