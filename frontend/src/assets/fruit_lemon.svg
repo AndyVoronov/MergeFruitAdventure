@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Основной круг лимона -->
+  <circle cx="100" cy="100" r="90" fill="url(#lemonGradient)" />
+  
+  <!-- Градиент для основного цвета лимона -->
+  <defs>
+    <radialGradient id="lemonGradient" cx="0.4" cy="0.4" r="0.6">
+      <stop offset="0%" stop-color="#FFF176" />
+      <stop offset="70%" stop-color="#FBC02D" />
+      <stop offset="100%" stop-color="#F57F17" />
+    </radialGradient>
+    
+    <!-- Градиент для блика -->
+    <radialGradient id="highlightGradient" cx="0.3" cy="0.3" r="0.4">
+      <stop offset="0%" stop-color="white" stop-opacity="0.8" />
+      <stop offset="100%" stop-color="white" stop-opacity="0" />
+    </radialGradient>
+    
+    <!-- Градиент для тени -->
+    <radialGradient id="shadowGradient" cx="0.7" cy="0.7" r="0.5">
+      <stop offset="0%" stop-color="#E65100" stop-opacity="0.5" />
+      <stop offset="100%" stop-color="#E65100" stop-opacity="0" />
+    </radialGradient>
+    
+    <!-- Текстура лимона -->
+    <filter id="texture">
+      <feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="3" result="noise" />
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="5" xChannelSelector="R" yChannelSelector="G" />
+    </filter>
+  </defs>
+  
+  <!-- Текстура поверхности лимона -->
+  <circle cx="100" cy="100" r="90" fill="none" stroke="none" filter="url(#texture)" />
+  
+  <!-- Блик -->
+  <circle cx="70" cy="70" r="40" fill="url(#highlightGradient)" />
+  
+  <!-- Тень -->
+  <circle cx="100" cy="100" r="80" fill="url(#shadowGradient)" />
+  
+  <!-- Мелкие детали текстуры (поры) -->
+  <circle cx="80" cy="90" r="2" fill="#FFF9C4" fill-opacity="0.6" />
+  <circle cx="90" cy="110" r="1.5" fill="#FFF9C4" fill-opacity="0.6" />
+  <circle cx="110" cy="80" r="1.8" fill="#FFF9C4" fill-opacity="0.6" />
+  <circle cx="120" cy="100" r="2" fill="#FFF9C4" fill-opacity="0.6" />
+</svg>

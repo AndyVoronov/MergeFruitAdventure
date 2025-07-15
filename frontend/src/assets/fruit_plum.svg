@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Основной контур сливы -->
+  <circle cx="100" cy="100" r="80" fill="url(#plumGradient)" />
+
+  <!-- Градиент для основного цвета сливы -->
+  <defs>
+    <radialGradient id="plumGradient" cx="0.4" cy="0.4" r="0.7" fx="0.3" fy="0.3">
+      <stop offset="0%" style="stop-color:#4B0082;stop-opacity:1" /> <!-- Темно-фиолетовый -->
+      <stop offset="50%" style="stop-color:#6A0DAD;stop-opacity:1" /> <!-- Средний фиолетовый -->
+      <stop offset="100%" style="stop-color:#9932CC;stop-opacity:1" /> <!-- Светлый фиолетовый -->
+    </radialGradient>
+
+    <!-- Градиент для блика -->
+    <radialGradient id="highlightGradient" cx="0.25" cy="0.25" r="0.3" fx="0.2" fy="0.2">
+      <stop offset="0%" style="stop-color:white;stop-opacity:0.8" />
+      <stop offset="100%" style="stop-color:white;stop-opacity:0" />
+    </radialGradient>
+
+    <!-- Градиент для тени -->
+    <radialGradient id="shadowGradient" cx="0.75" cy="0.75" r="0.5" fx="0.7" fy="0.7">
+      <stop offset="0%" style="stop-color:black;stop-opacity:0.3" />
+      <stop offset="100%" style="stop-color:black;stop-opacity:0" />
+    </radialGradient>
+  </defs>
+
+  <!-- Блик для реалистичности -->
+  <circle cx="70" cy="70" r="30" fill="url(#highlightGradient)" />
+
+  <!-- Тень для объема -->
+  <circle cx="100" cy="100" r="80" fill="url(#shadowGradient)" />
+
+  <!-- Небольшой контур для четкости -->
+  <circle cx="100" cy="100" r="80" fill="none" stroke="#2F0047" stroke-width="2" />
+
+  <!-- Черешок сливы -->
+  <path d="M100 20 Q110 10 120 15" fill="none" stroke="#4A3728" stroke-width="4" stroke-linecap="round" />
+
+  <!-- Листок -->
+  <path d="M120 15 C130 10, 140 20, 135 30 C130 40, 120 40, 115 30" fill="#228B22" stroke="#1A5F1A" stroke-width="1" />
+</svg>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Внешняя оболочка вишни -->
+  <circle cx="100" cy="100" r="90" fill="#d32f2f" stroke="#8b0000" stroke-width="5"/>
+  <!-- Внутренняя часть (мякоть) -->
+  <circle cx="100" cy="100" r="70" fill="#ff6666"/>
+  <!-- Косточка -->
+  <circle cx="100" cy="100" r="20" fill="#5d4037" stroke="#3e2723" stroke-width="2"/>
+  <!-- Линия разреза -->
+  <line x1="10" y1="100" x2="190" y2="100" stroke="#8b0000" stroke-width="5"/>
+</svg>

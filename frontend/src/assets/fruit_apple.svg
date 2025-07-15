@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Внешняя часть яблока (кожура) -->
+  <circle cx="100" cy="100" r="90" fill="#ff4d4d" />
+  <!-- Внутренняя часть (мякоть) -->
+  <circle cx="100" cy="100" r="80" fill="#fff5e6" />
+  <!-- Семечки -->
+  <ellipse cx="90" cy="80" rx="5" ry="8" fill="#3c2f2f" />
+  <ellipse cx="110" cy="80" rx="5" ry="8" fill="#3c2f2f" />
+  <ellipse cx="90" cy="120" rx="5" ry="8" fill="#3c2f2f" />
+  <ellipse cx="110" cy="120" rx="5" ry="8" fill="#3c2f2f" />
+  <!-- Разрез (вертикальная линия) -->
+  <line x1="100" y1="10" x2="100" y2="190" stroke="#000" stroke-width="2" />
+</svg>
