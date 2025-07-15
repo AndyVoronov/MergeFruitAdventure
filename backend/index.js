@@ -1,60 +1,68 @@
 const express = require('express');
 const cors = require('cors');
-const { Pool } = require('pg');
+const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
-app.use(cors());
 app.use(express.json());
+app.use(cors());
 
-// Подключение к PostgreSQL через Pool
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-});
-
-// Получить топ игроков
-app.get('/api/leaderboard', async (req, res) => {
-  try {
-    const result = await pool.query('SELECT id, username, score FROM leaderboard ORDER BY score DESC LIMIT 20');
-    res.json({ leaderboard: result.rows });
-  } catch (err) {
-    console.error('Ошибка при получении лидерборда:', err);
-    res.status(500).json({ error: 'Ошибка сервера' });
-  }
-});
+// Ваши данные Supabase
+const supabaseUrl = 'https://qoefhhylwyjdofvwrdcw.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFvZWZoaHlsd3lqZG9mdndyZGN3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI1ODIzNzksImV4cCI6MjA2ODE1ODM3OX0.9CexVkY2bV8gfC8ivAtPG-F0VQBUa-AYBA12CHSqTgw';
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Добавить/обновить результат игрока
-app.post('/api/leaderboard', async (req, res) => {
-  const { userId, username, score } = req.body;
-  if (!userId || !username || typeof score !== 'number') {
-    return res.status(400).json({ error: 'Некорректные данные' });
+app.post('/leaderboard', async (req, res) => {
+  const { id, username, score } = req.body;
+  const { error } = await supabase
+    .from('leaderboard')
+    .upsert([{ id, username, score }]);
+  if (error) return res.status(500).json({ error: error.message });
+
+  // Получить топ-10
+  const { data: top } = await supabase
+    .from('leaderboard')
+    .select('*')
+    .order('score', { ascending: false })
+    .limit(10);
+
+  // Получить место игрока
+  const { count } = await supabase
+    .from('leaderboard')
+    .select('*', { count: 'exact', head: true })
+    .gt('score', score);
+
+  const place = (count || 0) + 1;
+
+  res.json({ top, place });
+});
+
+// Получить топ-10 и место игрока
+app.get('/leaderboard/:id', async (req, res) => {
+  const { id } = req.params;
+  const { data: top } = await supabase
+    .from('leaderboard')
+    .select('*')
+    .order('score', { ascending: false })
+    .limit(10);
+
+  const { data: user } = await supabase
+    .from('leaderboard')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  let place = null;
+  if (user) {
+    const { count } = await supabase
+      .from('leaderboard')
+      .select('*', { count: 'exact', head: true })
+      .gt('score', user.score);
+    place = (count || 0) + 1;
   }
-  try {
-    // upsert: если игрок уже есть — обновить, иначе вставить
-    await pool.query(
-      `INSERT INTO leaderboard (id, username, score)
-       VALUES ($1, $2, $3)
-       ON CONFLICT (id) DO UPDATE SET username = EXCLUDED.username, score = GREATEST(leaderboard.score, EXCLUDED.score)`,
-      [userId, username, score]
-    );
-    res.json({ status: 'ok' });
-  } catch (err) {
-    console.error('Ошибка при добавлении результата:', err);
-    res.status(500).json({ error: 'Ошибка сервера' });
-  }
+
+  res.json({ top, place });
 });
 
-// Заглушка для прогресса игрока
-app.get('/api/progress/:userId', (req, res) => {
-  res.json({ userId: req.params.userId, progress: {} });
-});
-
-// Заглушка для обновления прогресса
-app.post('/api/progress/:userId', (req, res) => {
-  res.json({ status: 'ok', data: req.body });
-});
-
-const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => {
-  console.log(`Backend API running on http://localhost:${PORT}`);
-}); 
+const PORT = 3001;
+app.listen(PORT, () => console.log(`Server started on port ${PORT}`)); 
