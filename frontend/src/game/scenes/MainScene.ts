@@ -33,6 +33,7 @@ export class MainScene extends Phaser.Scene {
   menuButtons: Phaser.GameObjects.Text[] = [];
   _globalPointerDownHandler: (pointer: Phaser.Input.Pointer) => void = () => {};
   inputBlocked: boolean = false;
+  placeText: Phaser.GameObjects.Text | null = null;
 
   constructor() {
     super('MainScene');
@@ -492,7 +493,6 @@ export class MainScene extends Phaser.Scene {
     this.gameOverText.setAlpha(0); this.tweens.add({ targets: this.gameOverText, alpha: 1, duration: 400 });
     scoreText.setAlpha(0); this.tweens.add({ targets: scoreText, alpha: 1, duration: 400, delay: 100 });
     this.restartButton.setAlpha(0); this.tweens.add({ targets: this.restartButton, alpha: 1, duration: 400, delay: 200 });
-    // Анимация кнопки при наведении
     if (this.restartButton) {
       this.restartButton.on('pointerover', () => this.restartButton && this.restartButton.setStyle({ backgroundColor: '#fff066', color: '#000' }));
       this.restartButton.on('pointerout', () => this.restartButton && this.restartButton.setStyle({ backgroundColor: '#ffe066', color: '#222' }));
@@ -506,7 +506,7 @@ export class MainScene extends Phaser.Scene {
       console.log('Telegram user:', u);
       user = {
         id: u.id,
-        name: u.username || u.first_name || u.last_name || 'User'
+        name: u.username || [u.first_name, u.last_name].filter(Boolean).join(' ') || 'User'
       };
     }
     try {
@@ -516,7 +516,6 @@ export class MainScene extends Phaser.Scene {
         body: JSON.stringify({ id: user.id, username: user.name, score: this.score })
       });
     } catch (e) {
-      // Можно вывести ошибку пользователю
       console.error('Ошибка отправки результата в таблицу лидеров:', e);
     }
   }
@@ -654,6 +653,8 @@ export class MainScene extends Phaser.Scene {
     if (this.leadersModal) this.leadersModal.destroy(true);
     // @ts-ignore
     const tg = window.Telegram?.WebApp;
+    // Выводим в консоль для отладки
+    console.log('Telegram initDataUnsafe:', tg?.initDataUnsafe);
     let userId = 'guest';
     if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
       userId = tg.initDataUnsafe.user.id;
@@ -688,6 +689,7 @@ export class MainScene extends Phaser.Scene {
           if (t1) t1.destroy();
           if (t2) t2.destroy();
         }
+        if (this.placeText) { this.placeText.destroy(); this.placeText = null; }
         this.inputBlocked = false;
         this.input.off('pointerup', this._globalPointerDownHandler, this);
         this.input.on('pointerup', this._globalPointerDownHandler, this);
@@ -701,7 +703,7 @@ export class MainScene extends Phaser.Scene {
     });
     // Показываем место игрока
     if (place !== null) {
-      this.add.text(this.scale.width / 2, this.scale.height / 2 + 120, `Ваше место: ${place}`, { font: 'bold 22px Arial', color: '#ffe066' }).setOrigin(0.5).setDepth(3002);
+      this.placeText = this.add.text(this.scale.width / 2, this.scale.height / 2 + 120, `Ваше место: ${place}`, { font: 'bold 22px Arial', color: '#ffe066' }).setOrigin(0.5).setDepth(3002);
     }
     this.leadersModal = modalPanel;
   }
