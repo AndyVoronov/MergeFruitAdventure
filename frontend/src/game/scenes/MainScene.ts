@@ -672,8 +672,111 @@ export class MainScene extends Phaser.Scene {
     }
     const modalBg = this.add.rectangle(this.scale.width / 2, this.scale.height / 2, this.scale.width, this.scale.height, 0x111111, 0.7).setDepth(3000).setInteractive();
     const modalPanel = this.add.rectangle(this.scale.width / 2, this.scale.height / 2, 340, 420, 0x222244, 0.97).setStrokeStyle(4, 0xffff99).setDepth(3001);
-    const title = this.add.text(this.scale.width / 2, this.scale.height / 2 - 180, window.t ? window.t('menu.leaderboard') : 'Таблица лидеров', { font: 'bold 30px Arial', color: '#fff', stroke: '#ff0', strokeThickness: 3 }).setOrigin(0.5).setDepth(3002);
-    const closeBtn = this.add.text(this.scale.width / 2, this.scale.height / 2 + 170, window.t ? window.t('close') : 'Закрыть', { font: 'bold 24px Arial', color: '#222', backgroundColor: '#ffe066', padding: { left: 32, right: 32, top: 12, bottom: 12 } })
+    // --- Новый стиль заголовка ---
+    const title = this.add.text(
+      this.scale.width / 2,
+      this.scale.height / 2 - 180,
+      window.t ? window.t('menu.leaderboard') : 'Таблица лидеров',
+      {
+        fontFamily: 'Arial, Montserrat, Roboto, Inter, sans-serif',
+        font: 'bold 34px Arial',
+        color: '#ffe066',
+        stroke: '#222',
+        strokeThickness: 6,
+        shadow: { offsetX: 0, offsetY: 3, color: '#000', blur: 8, fill: true },
+        letterSpacing: 2
+      }
+    ).setOrigin(0.5).setDepth(3002);
+    // --- Формируем массив для отображения ---
+    let displayLeaders: any[] = [];
+    let userIndex = leaders.findIndex((r: any) => r.id === userId);
+    if (userIndex <= 6) {
+      // Топ-7
+      displayLeaders = leaders.slice(0, 7);
+    } else {
+      // Топ-3, прочерк, место перед, сам пользователь, место после (если есть)
+      displayLeaders = [
+        ...leaders.slice(0, 3),
+        { isGap: true },
+      ];
+      // Место перед пользователем
+      if (userIndex > 0) displayLeaders.push(leaders[userIndex - 1]);
+      // Сам пользователь
+      displayLeaders.push(leaders[userIndex]);
+      // Место после пользователя (если есть)
+      if (userIndex < leaders.length - 1) displayLeaders.push(leaders[userIndex + 1]);
+    }
+    // --- Layout ---
+    const rowStartY = this.scale.height / 2 - 120;
+    const rowStep = 32;
+    displayLeaders.forEach((r: any, i: number) => {
+      const rowY = rowStartY + i * rowStep;
+      if (r.isGap) {
+        // Прочерк
+        this.add.text(this.scale.width / 2, rowY, '...', {
+          font: '18px Arial',
+          fontFamily: 'Arial, Montserrat, Roboto, Inter, sans-serif',
+          color: '#ffe066',
+          align: 'center'
+        }).setOrigin(0.5, 0).setDepth(3002);
+        return;
+      }
+      let username = r.username || 'Гость';
+      if (username.length > 32) username = username.slice(0, 29) + '...';
+      const maxNameWidth = 175;
+      // --- Главное исправление: выводим реальное место игрока ---
+      let placeNum = r.place;
+      if (placeNum === undefined && r.id) {
+        // Если поле place отсутствует, ищем в leaders
+        const idx = leaders.findIndex((x: any) => x.id === r.id);
+        placeNum = idx >= 0 ? idx + 1 : i + 1;
+      }
+      let displayName = `${placeNum}. ${username}`;
+      let tempText = this.add.text(0, 0, displayName, { font: '18px Arial' }).setVisible(false);
+      while (tempText.width > maxNameWidth && displayName.length > 4) {
+        displayName = displayName.slice(0, -2) + '…';
+        tempText.setText(displayName);
+      }
+      tempText.destroy();
+      const leftX = this.scale.width / 2 - 140;
+      // Имя
+      const t1 = this.add.text(
+        leftX,
+        rowY,
+        displayName,
+        {
+          font: '18px Arial',
+          fontFamily: 'Arial, Montserrat, Roboto, Inter, sans-serif',
+          color: r.id === userId ? '#ffe066' : '#fff',
+          fontStyle: r.id === userId ? 'bold' : 'normal',
+          align: 'left',
+          wordWrap: { width: maxNameWidth, useAdvancedWrap: true }
+        }
+      ).setDepth(3002).setOrigin(0, 0);
+      t1.setName('leader_name_' + i);
+      // Очки
+      const scoreX = leftX + maxNameWidth + 40;
+      const t2 = this.add.text(
+        scoreX,
+        rowY,
+        r.score ? r.score.toString() : '',
+        {
+          font: '18px Arial',
+          fontFamily: 'Arial, Montserrat, Roboto, Inter, sans-serif',
+          color: r.id === userId ? '#ffe066' : '#fff',
+          fontStyle: r.id === userId ? 'bold' : 'normal',
+          align: 'right'
+        }
+      ).setOrigin(1, 0).setDepth(3002);
+      t2.setName('leader_score_' + i);
+    });
+    // --- Layout для "Ваше место" и кнопки ---
+    const placeBlockY = rowStartY + displayLeaders.length * rowStep + 16;
+    if (place !== null) {
+      this.placeText = this.add.text(this.scale.width / 2, placeBlockY, `Ваше место: ${place}`, { font: 'bold 22px Arial', color: '#ffe066' }).setOrigin(0.5).setDepth(3002);
+    }
+    const closeBtnY = placeBlockY + 40;
+    const closeBtn = this.add.text(this.scale.width / 2, closeBtnY, window.t ? window.t('close') : 'Закрыть', { font: 'bold 24px Arial', color: '#222', backgroundColor: '#ffe066', padding: { left: 32, right: 32, top: 12, bottom: 12 } })
       .setOrigin(0.5)
       .setDepth(3002)
       .setInteractive({ useHandCursor: true })
@@ -683,7 +786,7 @@ export class MainScene extends Phaser.Scene {
         modalPanel.destroy();
         title.destroy();
         closeBtn.destroy();
-        for (let i = 0; i < leaders.length; i++) {
+        for (let i = 0; i < displayLeaders.length; i++) {
           const t1 = this.children.getByName('leader_name_' + i);
           const t2 = this.children.getByName('leader_score_' + i);
           if (t1) t1.destroy();
@@ -695,16 +798,6 @@ export class MainScene extends Phaser.Scene {
         this.input.on('pointerup', this._globalPointerDownHandler, this);
         return false;
       });
-    leaders.forEach((r: any, i: number) => {
-      const t1 = this.add.text(this.scale.width / 2 - 120, this.scale.height / 2 - 120 + i * 36, `${i + 1}. ${r.username}`, { font: '22px Arial', color: r.id === userId ? '#ffe066' : '#fff', fontStyle: r.id === userId ? 'bold' : 'normal' }).setDepth(3002);
-      t1.setName('leader_name_' + i);
-      const t2 = this.add.text(this.scale.width / 2 + 80, this.scale.height / 2 - 120 + i * 36, r.score.toString(), { font: '22px Arial', color: r.id === userId ? '#ffe066' : '#fff', fontStyle: r.id === userId ? 'bold' : 'normal' }).setOrigin(1, 0).setDepth(3002);
-      t2.setName('leader_score_' + i);
-    });
-    // Показываем место игрока
-    if (place !== null) {
-      this.placeText = this.add.text(this.scale.width / 2, this.scale.height / 2 + 120, `Ваше место: ${place}`, { font: 'bold 22px Arial', color: '#ffe066' }).setOrigin(0.5).setDepth(3002);
-    }
     this.leadersModal = modalPanel;
   }
 } 

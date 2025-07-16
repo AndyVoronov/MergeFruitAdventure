@@ -76,4 +76,3 @@ app.get('/leaderboard/:id', async (req, res) => {
 });
 
 const PORT = 3001;
-app.listen(PORT, () => console.log(`Server started on port ${PORT}`)); 
