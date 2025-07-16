@@ -63,6 +63,9 @@ if (tg) {
       })
     });
   }
+  // Отключаем MainButton Telegram
+  tg.MainButton.hide();
+  tg.MainButton.offClick();
   // Кастомизация кнопки
   tg.MainButton.setText('🔄 ' + (window.t ? window.t('restart') : 'Рестарт'));
   tg.MainButton.show();
