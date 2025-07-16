@@ -86,6 +86,10 @@ export class MainScene extends Phaser.Scene {
   }
 
   create() {
+    // Отключаем Telegram MainButton (кнопку 'Рестарт')
+    if (window.Telegram?.WebApp?.MainButton) {
+      window.Telegram.WebApp.MainButton.hide();
+    }
     this.inputBlocked = false;
     this.input.off('pointerup', this._globalPointerDownHandler, this);
     this._globalPointerDownHandler = (pointer: Phaser.Input.Pointer) => {
