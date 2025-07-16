@@ -34,6 +34,7 @@ export class MainScene extends Phaser.Scene {
   _globalPointerDownHandler: (pointer: Phaser.Input.Pointer) => void = () => {};
   inputBlocked: boolean = false;
   placeText: Phaser.GameObjects.Text | null = null;
+  topPanel!: Phaser.GameObjects.Container; // Добавляем поле для хранения верхней панели
 
   constructor() {
     super('MainScene');
@@ -135,6 +136,7 @@ export class MainScene extends Phaser.Scene {
     if (this.leftPanel) this.leftPanel.destroy();
     if (this.rightPanel) this.rightPanel.destroy();
     if (this.menuContainer) this.menuContainer.destroy(); // Удаляем меню при рестарте
+    if (this.topPanel) this.topPanel.destroy(); // Удаляем верхнюю панель при рестарте
     // --- Случайный выбор и установка фона ---
     const bgKeys = ['bg_1', 'bg_2', 'bg_3'];
     const bgKey = Phaser.Utils.Array.GetRandom(bgKeys);
@@ -148,13 +150,14 @@ export class MainScene extends Phaser.Scene {
     // --- UI верхней панели ---
     // Только число очков, без слова 'Счёт'
     this.scoreText = this.add.text(0, 0, '0', {
-      font: 'bold 32px Inter, Arial, sans-serif',
+      font: 'bold 32px Arial',
       color: '#fff',
       stroke: '#222',
       strokeThickness: 5,
       shadow: { offsetX: 2, offsetY: 2, color: '#000', blur: 6, fill: true },
       align: 'center'
     });
+
     // 2. Умения (иконки и счётчики)
     this.abilityExplodeIcon = this.add.container(0, 0);
     const explodeBg = this.add.circle(0, 0, 24, 0x333344, 0.7).setStrokeStyle(2, 0xffff66);
@@ -199,41 +202,35 @@ export class MainScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: true })
       .setDepth(200);
     // --- Контейнеры панели ---
-    this.leftPanel = this.add.container(0, 0, [
-      this.scoreText,
-      this.abilityExplodeIcon,
-      this.abilityGrandmaIcon
-    ]);
-    this.rightPanel = this.add.container(0, 0, [
-      this.nextFruitIcon,
-      this.menuButton
-    ]);
-    this.leftPanel.setDepth(200);
-    this.rightPanel.setDepth(200);
+    // Не используем контейнер topPanel для scoreText и кнопок — позиционируем их напрямую
+
     // --- Функция для выравнивания и масштабирования ---
     const layoutTopPanel = () => {
       const padding = 12;
       let scale = 1;
-      const topY = 32;
-      this.scoreText.setFontSize(32 * scale);
+      if (this.scale.width < 500) scale = 0.8;
+      if (this.scale.width < 350) scale = 0.65;
+      const topY = 24; // Центрируем строку выше
+      // Размеры и стили
+      // Не трогаем размер scoreText! Только иконки масштабируем
       this.abilityExplodeIcon.setScale(1 * scale);
       this.abilityGrandmaIcon.setScale(1 * scale);
       this.nextFruitIcon.setDisplaySize(40 * scale, 40 * scale);
       this.menuButton.setDisplaySize(40 * scale, 40 * scale);
-      // Центрируем очки по ширине между способностями и меню
-      const centerY = topY + 32 * scale / 2;
-      const centerX = this.scale.width / 2;
-      this.scoreText.setPosition(centerX - this.scoreText.width / 2, centerY);
-      // Располагаем способности слева от очков
-      const leftX = centerX - this.scoreText.width / 2 - 48 * scale - padding;
-      this.abilityExplodeIcon.setPosition(leftX + 24 * scale, centerY);
-      this.abilityGrandmaIcon.setPosition(leftX + 24 * scale + 48 * scale + padding, centerY);
-      // Меню и следующий фрукт справа
-      const rightX = centerX + this.scoreText.width / 2 + padding;
-      this.nextFruitIcon.setPosition(rightX + 40 * scale, centerY);
-      this.menuButton.setPosition(rightX + 40 * scale + padding + 40 * scale, centerY);
-      this.leftPanel.setPosition(0, 0);
-      this.rightPanel.setPosition(0, 0);
+      // Счёт
+      let x = padding;
+      this.scoreText.setPosition(x, topY);
+      x += this.scoreText.width + padding;
+      // Способности
+      this.abilityExplodeIcon.setPosition(x + 24 * scale, topY + 16 * scale);
+      x += 48 * scale + padding;
+      this.abilityGrandmaIcon.setPosition(x + 24 * scale, topY + 16 * scale);
+      x += 48 * scale + padding;
+      // Справа: следующий фрукт и меню
+      let rightX = this.scale.width - padding;
+      this.menuButton.setPosition(rightX - 20 * scale, topY + 20 * scale);
+      rightX -= 40 * scale + padding;
+      this.nextFruitIcon.setPosition(rightX - 20 * scale, topY + 20 * scale);
     };
     layoutTopPanel();
     this.scale.on('resize', layoutTopPanel);
@@ -321,74 +318,64 @@ export class MainScene extends Phaser.Scene {
         .setInteractive();
       this.tweens.add({ targets: menuPanel, alpha: 1, scale: 1, duration: 250, ease: 'Back.Out' });
       // --- Современные кнопки меню ---
-      const btnStyleModern = {
-        font: 'bold 22px Inter, Arial, sans-serif',
-        color: '#fff',
-        backgroundColor: '#333',
-        padding: { left: 0, right: 0, top: 0, bottom: 0 },
-        align: 'center',
-        fixedWidth: 240,
-        fixedHeight: 48,
-        shadow: { offsetX: 0, offsetY: 2, color: '#000', blur: 6, fill: true }
-      };
-      const btnContinue = this.add.text(this.scale.width / 2, this.scale.height / 2 - 50, window.t ? window.t('menu.continue') : 'Продолжить', btnStyleModern)
-        .setOrigin(0.5).setDepth(3002).setInteractive({ useHandCursor: true });
-      const btnRestart = this.add.text(this.scale.width / 2, this.scale.height / 2 + 10, window.t ? window.t('menu.restart') : 'Начать заново', btnStyleModern)
-        .setOrigin(0.5).setDepth(3002).setInteractive({ useHandCursor: true });
-      const btnLeaders = this.add.text(this.scale.width / 2, this.scale.height / 2 + 70, window.t ? window.t('menu.leaderboard') : 'Таблица лидеров', btnStyleModern)
-        .setOrigin(0.5).setDepth(3002).setInteractive({ useHandCursor: true });
-      // Скругления и тень через Graphics
-      [btnContinue, btnRestart, btnLeaders].forEach(btn => {
+      // Создаём кастомные современные кнопки меню
+      const createModernButton = (y: number, text: string, onClick: () => void) => {
+        const btnWidth = 240, btnHeight = 56, radius = 16;
+        const textWidth = 220; // ширина текста внутри кнопки
+        const btnX = this.scale.width / 2, btnY = y;
         const g = this.add.graphics();
         g.fillStyle(0x333344, 0.97);
-        g.fillRoundedRect(btn.x - 120, btn.y - 24, 240, 48, 16);
-        g.setDepth(3001);
-        g.setAlpha(1);
-        btn.setDepth(3002);
-        btn.setShadow(0, 2, '#000', 6, true, true);
-        btn.on('pointerover', () => {
+        g.fillRoundedRect(btnX - btnWidth / 2, btnY - btnHeight / 2, btnWidth, btnHeight, radius);
+        g.setDepth(3002);
+        const btnText = this.add.text(btnX, btnY, text, {
+          font: 'bold 26px Arial',
+          color: '#fff',
+          align: 'center',
+          fixedWidth: textWidth,
+          wordWrap: { width: textWidth, useAdvancedWrap: true },
+          shadow: { offsetX: 0, offsetY: 2, color: '#000', blur: 6, fill: true }
+        })
+          .setOrigin(0.5)
+          .setDepth(3003);
+        // Создаём интерактивную зону по всей области кнопки
+        const zone = this.add.zone(btnX, btnY, btnWidth, btnHeight)
+          .setOrigin(0.5)
+          .setDepth(3004)
+          .setInteractive({ useHandCursor: true });
+        // Навешиваем обработчики на зону
+        zone.on('pointerover', () => {
           g.clear();
           g.fillStyle(0xffe066, 1);
-          g.fillRoundedRect(btn.x - 120, btn.y - 24, 240, 48, 16);
-          btn.setStyle({ color: '#222' });
+          g.fillRoundedRect(btnX - btnWidth / 2, btnY - btnHeight / 2, btnWidth, btnHeight, radius);
+          btnText.setStyle({ color: '#222' });
         });
-        btn.on('pointerout', () => {
+        zone.on('pointerout', () => {
           g.clear();
           g.fillStyle(0x333344, 0.97);
-          g.fillRoundedRect(btn.x - 120, btn.y - 24, 240, 48, 16);
-          btn.setStyle({ color: '#fff' });
+          g.fillRoundedRect(btnX - btnWidth / 2, btnY - btnHeight / 2, btnWidth, btnHeight, radius);
+          btnText.setStyle({ color: '#fff' });
         });
-      });
-      this.menuButtons = [btnContinue, btnRestart, btnLeaders];
-      [btnContinue, btnRestart, btnLeaders].forEach(btn => {
-        btn.on('pointerover', () => btn.setStyle({ backgroundColor: '#ffe066', color: '#222' }));
-        btn.on('pointerout', () => btn.setStyle({ backgroundColor: '#333', color: '#fff' }));
-      });
+        zone.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+          pointer.event.stopPropagation();
+          onClick();
+        });
+        return { btn: btnText, g, zone };
+      };
+      const btns = [
+        createModernButton(this.scale.height / 2 - 50, window.t ? window.t('menu.continue') : 'Продолжить', () => closeMenu()),
+        createModernButton(this.scale.height / 2 + 10, window.t ? window.t('menu.restart') : 'Начать заново', () => { closeMenu(); this.scene.restart(); }),
+        createModernButton(this.scale.height / 2 + 70, window.t ? window.t('menu.leaderboard') : 'Таблица лидеров', () => { closeMenu(); this.showLeadersModal(); })
+      ];
+      this.menuButtons = btns.map(b => b.btn);
       const closeMenu = () => {
-        overlay.destroy(); menuPanel.destroy(); btnContinue.destroy(); btnRestart.destroy(); btnLeaders.destroy();
+        overlay.destroy(); menuPanel.destroy();
+        btns.forEach(({ btn, g, zone }) => { btn.destroy(); g.destroy(); zone.destroy(); });
         this.menuOpen = false;
         this.menuButtons = [];
         this.inputBlocked = false;
         this.input.off('pointerup', this._globalPointerDownHandler, this);
         this.input.on('pointerup', this._globalPointerDownHandler, this);
       };
-      btnContinue.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-        pointer.event.stopPropagation();
-        closeMenu();
-        return false;
-      });
-      btnRestart.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-        pointer.event.stopPropagation();
-        closeMenu();
-        this.scene.restart();
-        return false;
-      });
-      btnLeaders.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-        pointer.event.stopPropagation();
-        closeMenu();
-        this.showLeadersModal();
-        return false;
-      });
       overlay.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
         pointer.event.stopPropagation();
         closeMenu();
@@ -468,7 +455,7 @@ export class MainScene extends Phaser.Scene {
       }
     });
     // --- В update и других местах обновлять только this.scoreText ---
-    this.scoreText.setText(i18next.t('score') + ': ' + this.score);
+    this.scoreText.setText(this.score.toString());
   }
 
   async endGame() {

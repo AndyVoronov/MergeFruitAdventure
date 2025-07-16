@@ -60,3 +60,26 @@
 - Положительный фидбэк >80% на бете
 - Реализация всех ключевых функций
 - Лёгкая поддержка и расширение 
+
+## Полезные ссылки
+- Backend (Render): https://mergefruitadventure.onrender.com
+- Frontend (Vercel): https://merge-fruit-adventure.vercel.app/
+- Supabase (DB): https://supabase.com/dashboard/project/qoefhhylwyjdofvwrdcw/database/schemas
+- Telegram Mini Apps: https://core.telegram.org/bots/webapps#initializing-mini-apps
+- Репозиторий GitHub: https://github.com/AndyVoronov/MergeFruitAdventure
+
+## FAQ: типовые ошибки и лучшие практики
+- **Ошибка "Application exited early" на Render**: 
+  - Причина: backend не слушал порт, требуемый Render (PORT из process.env), либо не было app.listen().
+  - Решение: всегда используйте
+    ```js
+    const PORT = process.env.PORT || 3001;
+    app.listen(PORT, ...);
+    ```
+- **Фронтенд не видит backend**:
+  - Причина: в коде был указан localhost вместо публичного адреса Render.
+  - Решение: всегда используйте публичный URL backend для fetch-запросов с фронта.
+- **Best practice**:
+  - Всегда добавляйте логирование старта сервера и ошибок (console.log, console.error) — это ускоряет диагностику.
+  - Для production не храните секреты (ключи Supabase) в коде, используйте переменные окружения Render.
+  - Все важные ссылки и инструкции фиксируйте в этом разделе документации. 
