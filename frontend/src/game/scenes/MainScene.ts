@@ -2,6 +2,254 @@ import Phaser from 'phaser';
 import { Fruit, FruitType, getNextFruitType, FruitOrder } from '../objects/Fruit';
 import i18next from 'i18next';
 
+// ====== СИСТЕМА ДОСТИЖЕНИЙ ======
+/**
+ * @typedef {Object} Achievement
+ * @property {string} id
+ * @property {string} title
+ * @property {string} description
+ * @property {string} condition
+ * @property {number} progress
+ * @property {number} target
+ * @property {boolean} unlocked
+ * @property {string} [dateUnlocked]
+ */
+
+/**
+ * Массив достижений (базовая структура)
+ */
+const ACHIEVEMENTS = [
+  {
+    id: 'merge_novice',
+    title: 'Новичок слияния',
+    description: 'Слей свои первые 10 фруктов!',
+    condition: 'Выполнить 10 слияний любых фруктов.',
+    progress: 0,
+    target: 10,
+    unlocked: false,
+  },
+  {
+    id: 'fruit_master',
+    title: 'Фруктовый мастер',
+    description: 'Слей 100 фруктов за одну игровую сессию.',
+    condition: 'Достичь 100 слияний в одном матче.',
+    progress: 0,
+    target: 100,
+    unlocked: false,
+  },
+  {
+    id: 'watermelon_king',
+    title: 'Арбузный король',
+    description: 'Создай свой первый арбуз!',
+    condition: 'Слить фрукты до уровня арбуза.',
+    progress: 0,
+    target: 1,
+    unlocked: false,
+  },
+  {
+    id: 'fruit_fever',
+    title: 'Фруктовая лихорадка',
+    description: 'Набери 10 000 очков за один раунд',
+    condition: 'Достичь 10 000 очков в одном забеге',
+    progress: 0,
+    target: 10000,
+    unlocked: false,
+  },
+  {
+    id: 'field_cleaner',
+    title: 'Чистильщик поля',
+    description: 'Очисти игровое поле от всех фруктов.',
+    condition: 'Убрать все фрукты с поля в любом уровне.',
+    progress: 0,
+    target: 1,
+    unlocked: false,
+  },
+  {
+    id: 'daily_hero',
+    title: 'Ежедневный герой',
+    description: 'Заходи в игру 7 дней подряд.',
+    condition: 'Активировать ежедневный бонус 7 дней подряд.',
+    progress: 0,
+    target: 7,
+    unlocked: false,
+  },
+  {
+    id: 'cherry_start',
+    title: 'Вишневый старт',
+    description: 'Создай 100 вишен за все время игры.',
+    condition: 'Слить фрукты до уровня вишни 100 раз.',
+    progress: 0,
+    target: 100,
+    unlocked: false,
+  },
+  {
+    id: 'pineapple_lord',
+    title: 'Ананасовый властелин',
+    description: 'Создай 5 ананасов в одном уровне.',
+    condition: 'Достичь уровня ананаса 5 раз в одном матче.',
+    progress: 0,
+    target: 5,
+    unlocked: false,
+  },
+  {
+    id: 'social_gardener',
+    title: 'Социальный садовник',
+    description: 'Поделись своим результатом в соцсетях.',
+    condition: 'Использовать функцию "Поделиться" через интерфейс игры.',
+    progress: 0,
+    target: 1,
+    unlocked: false,
+  },
+  {
+    id: 'leader_legend',
+    title: 'Легенда лидеров',
+    description: 'Войди в топ-100 глобальной таблицы лидеров.',
+    condition: 'Достичь позиции в топ-100 по очкам в бесконечном режиме.',
+    progress: 0,
+    target: 1,
+    unlocked: false,
+  },
+  {
+    id: 'fruit_marathon',
+    title: 'Фруктовый марафон',
+    description: 'Проведи 1 час в бесконечном режиме.',
+    condition: 'Играть в бесконечный режим суммарно 60 минут.',
+    progress: 0,
+    target: 60,
+    unlocked: false,
+  },
+  {
+    id: 'fruit_collector',
+    title: 'Коллекционер фруктов',
+    description: 'Разблокируй все виды фруктов в игре.',
+    condition: 'Создать хотя бы по одному фрукту каждого уровня (от вишни до максимального).',
+    progress: 0,
+    target: 1,
+    unlocked: false,
+  },
+];
+
+type Achievement = {
+  id: string;
+  title: string;
+  description: string;
+  condition: string;
+  progress: number;
+  target: number;
+  unlocked: boolean;
+  dateUnlocked?: string;
+};
+
+/** Получить прогресс достижений из localStorage */
+function loadAchievements() {
+  try {
+    const data = localStorage.getItem('achievements');
+    if (data) {
+      const arr = JSON.parse(data);
+      // Мержим с текущим списком (на случай добавления новых достижений)
+      return ACHIEVEMENTS.map(a => {
+        const saved = arr.find((b: any) => b.id === a.id);
+        return saved ? { ...a, ...saved } : a;
+      });
+    }
+  } catch {}
+  return ACHIEVEMENTS;
+}
+
+/** Сохранить прогресс достижений в localStorage */
+function saveAchievements(list: Achievement[]) {
+  localStorage.setItem('achievements', JSON.stringify(list));
+}
+
+// ====== /СИСТЕМА ДОСТИЖЕНИЙ ======
+
+// ====== UI для достижений ======
+function showAchievementModal(scene: Phaser.Scene) {
+  if ((scene as any).achievementsModal) return;
+  const list = loadAchievements();
+  const width = 420, height = 540;
+  const bg = scene.add.rectangle(scene.scale.width / 2, scene.scale.height / 2, width, height, 0x222244, 0.98)
+    .setStrokeStyle(4, 0xffff99)
+    .setDepth(4000);
+  const title = scene.add.text(scene.scale.width / 2, scene.scale.height / 2 - height / 2 + 36, 'Достижения', {
+    font: 'bold 30px Arial', color: '#fff', align: 'center', shadow: { offsetX: 0, offsetY: 2, color: '#000', blur: 6, fill: true }
+  }).setOrigin(0.5).setDepth(4001);
+  // === СКРОЛЛИРУЕМЫЙ КОНТЕЙНЕР ===
+  const maskShape = scene.make.graphics({ x: 0, y: 0 });
+  const maskY = scene.scale.height / 2 - height / 2 + 70;
+  const scrollAreaHeight = height - 120 - 32; // уменьшаем, чтобы не перекрывать кнопку
+  maskShape.fillRect(scene.scale.width / 2 - width / 2 + 16, maskY, width - 32, scrollAreaHeight);
+  const mask = maskShape.createGeometryMask();
+  const itemsContainer = scene.add.container(0, 0).setDepth(4001);
+  itemsContainer.setMask(mask);
+  // Добавляем достижения в контейнер с увеличенным шагом и отступом
+  list.forEach((a, i) => {
+    const y = maskY + i * 54;
+    const unlocked = a.unlocked ? '✅' : '🔒';
+    const progress = a.unlocked ? '' : ` (${a.progress}/${a.target})`;
+    const color = a.unlocked ? '#ffe066' : '#fff';
+    const item = scene.add.text(scene.scale.width / 2 - width / 2 + 32, y, `${unlocked} ${a.title}${progress}`, {
+      font: 'bold 18px Arial', color, wordWrap: { width: width - 64 }, align: 'left', lineSpacing: 2
+    }).setDepth(4001);
+    const desc = scene.add.text(scene.scale.width / 2 - width / 2 + 48, y + 22, a.description, {
+      font: '16px Arial', color: '#fff', wordWrap: { width: width - 80 }, align: 'left', lineSpacing: 0
+    }).setDepth(4001);
+    itemsContainer.add(item);
+    itemsContainer.add(desc);
+  });
+  // Скроллирование
+  let dragStartY = 0, containerStartY = 0;
+  const maxScroll = Math.max(0, list.length * 54 - scrollAreaHeight);
+  itemsContainer.setY(0);
+  bg.setInteractive();
+  bg.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+    dragStartY = pointer.y;
+    containerStartY = itemsContainer.y;
+    scene.input.on('pointermove', onDrag, scene);
+    scene.input.on('pointerup', onStopDrag, scene);
+  });
+  function onDrag(pointer: Phaser.Input.Pointer) {
+    let newY = containerStartY + (pointer.y - dragStartY);
+    newY = Math.min(0, Math.max(-maxScroll, newY));
+    itemsContainer.setY(newY);
+  }
+  function onStopDrag() {
+    scene.input.off('pointermove', onDrag, scene);
+    scene.input.off('pointerup', onStopDrag, scene);
+  }
+  // Кнопка закрытия всегда внизу
+  const closeBtn = scene.add.text(scene.scale.width / 2, scene.scale.height / 2 + height / 2 - 32, 'Закрыть', {
+    font: 'bold 22px Arial', color: '#fff', backgroundColor: '#333', padding: { left: 28, right: 28, top: 10, bottom: 10 }, align: 'center', shadow: { offsetX: 0, offsetY: 2, color: '#000', blur: 6, fill: true }
+  }).setOrigin(0.5).setDepth(4002).setInteractive({ useHandCursor: true });
+  closeBtn.on('pointerdown', () => {
+    bg.destroy(); title.destroy(); closeBtn.destroy(); itemsContainer.destroy(); maskShape.destroy();
+    (scene as any).achievementsModal = null;
+  });
+  (scene as any).achievementsModal = bg;
+}
+
+// Всплывающее уведомление о достижении
+function showAchievementToast(scene: Phaser.Scene, title: string, description: string) {
+  const toastW = 340, toastH = 80;
+  const x = scene.scale.width - toastW / 2 - 24;
+  const y = 64;
+  const bg = scene.add.rectangle(x, y, toastW, toastH, 0x333344, 0.97).setDepth(5000).setOrigin(0.5);
+  bg.setStrokeStyle(2, 0xffff99);
+  const text = scene.add.text(x, y, `Достижение!\n${title}\n${description}`, {
+    font: 'bold 18px Arial', color: '#ffe066', align: 'center', wordWrap: { width: toastW - 32 }
+  }).setOrigin(0.5).setDepth(5001);
+  scene.tweens.add({ targets: [bg, text], alpha: 0, delay: 1800, duration: 600, onComplete: () => { bg.destroy(); text.destroy(); } });
+}
+// ====== /UI для достижений ======
+
+// Глобальное свойство для доступа к текущей сцене из updateAchievement
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+declare global {
+  interface Window {
+    currentPhaserScene?: Phaser.Scene;
+  }
+}
+
 export class MainScene extends Phaser.Scene {
   score: number = 0;
   scoreText!: Phaser.GameObjects.Text;
@@ -35,6 +283,16 @@ export class MainScene extends Phaser.Scene {
   inputBlocked: boolean = false;
   placeText: Phaser.GameObjects.Text | null = null;
   topPanel!: Phaser.GameObjects.Container; // Добавляем поле для хранения верхней панели
+  achievementsModal: Phaser.GameObjects.Rectangle | null = null;
+
+  // Achievement session counters
+  sessionMerges: number = 0;
+  sessionPineapples: number = 0;
+  sessionWatermelons: number = 0;
+  sessionCherries: number = 0;
+  sessionScore: number = 0;
+  sessionFruitsCreated: Set<string> = new Set();
+  sessionStartTime: number = 0;
 
   constructor() {
     super('MainScene');
@@ -86,10 +344,6 @@ export class MainScene extends Phaser.Scene {
   }
 
   create() {
-    // Отключаем Telegram MainButton (кнопку 'Рестарт')
-    if (window.Telegram?.WebApp?.MainButton) {
-      window.Telegram.WebApp.MainButton.hide();
-    }
     this.inputBlocked = false;
     this.input.off('pointerup', this._globalPointerDownHandler, this);
     this._globalPointerDownHandler = (pointer: Phaser.Input.Pointer) => {
@@ -307,14 +561,13 @@ export class MainScene extends Phaser.Scene {
     // const btnLeaders = this.add.text(-180, 100, window.t ? window.t('menu.leaderboard') : 'Таблица лидеров', { font: '22px Arial', color: '#fff', backgroundColor: '#333', padding: { left: 16, right: 16, top: 8, bottom: 8 } }).setOrigin(0, 0.5).setInteractive({ useHandCursor: true });
     // menuContainer.add([menuBg, btnContinue, btnRestart, btnLeaders]);
     // Открытие/закрытие меню
-    this.menuButtons = [];
     this.menuButton.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
       pointer.event.stopPropagation();
       if (this.menuContainer && this.menuContainer.visible) return;
       const overlay = this.add.rectangle(this.scale.width / 2, this.scale.height / 2, this.scale.width, this.scale.height, 0x111111, 0.45)
         .setDepth(3000).setInteractive();
-      const panelW = 320, panelH = 260;
-      const menuPanel = this.add.rectangle(this.scale.width / 2, this.scale.height / 2, panelW, panelH, 0x222244, 0.97)
+      const panelW = 340, panelH = 320;
+      const menuPanel = this.add.rectangle(this.scale.width / 2, this.scale.height / 2, panelW, panelH, 0x222244, 0.98)
         .setStrokeStyle(4, 0xffff99)
         .setDepth(3001)
         .setOrigin(0.5)
@@ -322,18 +575,17 @@ export class MainScene extends Phaser.Scene {
         .setScale(0.7)
         .setInteractive();
       this.tweens.add({ targets: menuPanel, alpha: 1, scale: 1, duration: 250, ease: 'Back.Out' });
-      // --- Современные кнопки меню ---
-      // Создаём кастомные современные кнопки меню
+      // --- объявление createModernButton и создание btns ---
       const createModernButton = (y: number, text: string, onClick: () => void) => {
-        const btnWidth = 240, btnHeight = 56, radius = 16;
-        const textWidth = 220; // ширина текста внутри кнопки
+        const btnWidth = 260, btnHeight = 44, radius = 14;
+        const textWidth = 220;
         const btnX = this.scale.width / 2, btnY = y;
         const g = this.add.graphics();
         g.fillStyle(0x333344, 0.97);
         g.fillRoundedRect(btnX - btnWidth / 2, btnY - btnHeight / 2, btnWidth, btnHeight, radius);
         g.setDepth(3002);
         const btnText = this.add.text(btnX, btnY, text, {
-          font: 'bold 26px Arial',
+          font: 'bold 22px Arial',
           color: '#fff',
           align: 'center',
           fixedWidth: textWidth,
@@ -342,12 +594,10 @@ export class MainScene extends Phaser.Scene {
         })
           .setOrigin(0.5)
           .setDepth(3003);
-        // Создаём интерактивную зону по всей области кнопки
         const zone = this.add.zone(btnX, btnY, btnWidth, btnHeight)
           .setOrigin(0.5)
           .setDepth(3004)
           .setInteractive({ useHandCursor: true });
-        // Навешиваем обработчики на зону
         zone.on('pointerover', () => {
           g.clear();
           g.fillStyle(0xffe066, 1);
@@ -366,12 +616,19 @@ export class MainScene extends Phaser.Scene {
         });
         return { btn: btnText, g, zone };
       };
+      const btnCount = 4;
+      const btnSpacing = 16;
+      const btnHeight = 44;
+      const totalBtnsHeight = btnCount * btnHeight + (btnCount - 1) * btnSpacing;
+      const firstBtnY = this.scale.height / 2 - totalBtnsHeight / 2 + btnHeight / 2;
       const btns = [
-        createModernButton(this.scale.height / 2 - 50, window.t ? window.t('menu.continue') : 'Продолжить', () => closeMenu()),
-        createModernButton(this.scale.height / 2 + 10, window.t ? window.t('menu.restart') : 'Начать заново', () => { closeMenu(); this.scene.restart(); }),
-        createModernButton(this.scale.height / 2 + 70, window.t ? window.t('menu.leaderboard') : 'Таблица лидеров', () => { closeMenu(); this.showLeadersModal(); })
+        createModernButton(firstBtnY + 0 * (btnHeight + btnSpacing), window.t ? window.t('menu.continue') : 'Продолжить', () => closeMenu()),
+        createModernButton(firstBtnY + 1 * (btnHeight + btnSpacing), window.t ? window.t('menu.restart') : 'Начать заново', () => { closeMenu(); this.scene.restart(); }),
+        createModernButton(firstBtnY + 2 * (btnHeight + btnSpacing), window.t ? window.t('menu.leaderboard') : 'Таблица лидеров', () => { closeMenu(); this.showLeadersModal(); }),
+        createModernButton(firstBtnY + 3 * (btnHeight + btnSpacing), 'Достижения', () => showAchievementModal(this))
       ];
       this.menuButtons = btns.map(b => b.btn);
+      // --- конец блока ---
       const closeMenu = () => {
         overlay.destroy(); menuPanel.destroy();
         btns.forEach(({ btn, g, zone }) => { btn.destroy(); g.destroy(); zone.destroy(); });
@@ -427,6 +684,16 @@ export class MainScene extends Phaser.Scene {
     this.abilityMode = 'none';
     this.updateAbilityGlow();
     this.updateCursor();
+
+    // Сбросить счётчики достижений за сессию
+    this.sessionMerges = 0;
+    this.sessionPineapples = 0;
+    this.sessionWatermelons = 0;
+    this.sessionCherries = 0;
+    this.sessionScore = 0;
+    this.sessionFruitsCreated = new Set();
+    this.sessionStartTime = Date.now();
+    window.currentPhaserScene = this;
   }
 
   update() {
@@ -461,6 +728,12 @@ export class MainScene extends Phaser.Scene {
     });
     // --- В update и других местах обновлять только this.scoreText ---
     this.scoreText.setText(this.score.toString());
+
+    // --- ДОСТИЖЕНИЯ: очки за сессию ---
+    if (this.sessionScore !== this.score) {
+      this.sessionScore = this.score;
+      updateAchievement('fruit_fever', this.score - this.sessionScore);
+    }
   }
 
   async endGame() {
@@ -549,6 +822,28 @@ export class MainScene extends Phaser.Scene {
       if (nextType) {
         fruitA.isMerging = true;
         fruitB.isMerging = true;
+        // --- ДОСТИЖЕНИЯ: слияния ---
+        this.sessionMerges++;
+        updateAchievement('merge_novice', 1);
+        updateAchievement('fruit_master', 1);
+        // --- ДОСТИЖЕНИЯ: создание фруктов ---
+        if (nextType === 'watermelon') {
+          this.sessionWatermelons++;
+          updateAchievement('watermelon_king', 1);
+        }
+        if (nextType === 'pineapple') {
+          this.sessionPineapples++;
+          updateAchievement('pineapple_lord', 1);
+        }
+        if (nextType === 'cherry') {
+          this.sessionCherries++;
+          updateAchievement('cherry_start', 1);
+        }
+        // --- ДОСТИЖЕНИЯ: коллекционер фруктов ---
+        this.sessionFruitsCreated.add(nextType);
+        if (this.sessionFruitsCreated.size === FruitOrder.length) {
+          updateAchievement('fruit_collector', 1);
+        }
         // Анимация слияния
         this.tweens.add({
           targets: [fruitA, fruitB],
@@ -799,5 +1094,29 @@ export class MainScene extends Phaser.Scene {
         return false;
       });
     this.leadersModal = modalPanel;
+  }
+
+  // Очистка поля (например, после merge или спец. действия)
+  clearField() {
+    updateAchievement('field_cleaner', 1);
+  }
+}
+// Переопределяю updateAchievement для уведомления в консоль
+function updateAchievement(id: string, delta: number = 1) {
+  const list = loadAchievements();
+  const idx = list.findIndex(a => a.id === id);
+  if (idx === -1) return;
+  const a = list[idx];
+  if (!a.unlocked) {
+    a.progress = Math.min(a.progress + delta, a.target);
+    if (a.progress >= a.target) {
+      a.unlocked = true;
+      a.dateUnlocked = new Date().toISOString();
+      // Всплывающее уведомление
+      if (window.currentPhaserScene) {
+        showAchievementToast(window.currentPhaserScene, a.title, a.description);
+      }
+    }
+    saveAchievements(list);
   }
 } 
