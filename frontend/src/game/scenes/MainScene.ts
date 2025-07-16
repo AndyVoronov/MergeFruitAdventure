@@ -155,7 +155,8 @@ export class MainScene extends Phaser.Scene {
       stroke: '#222',
       strokeThickness: 5,
       shadow: { offsetX: 2, offsetY: 2, color: '#000', blur: 6, fill: true },
-      align: 'center'
+      align: 'right',
+      fixedWidth: 120
     });
 
     // 2. Умения (иконки и счётчики)
@@ -219,8 +220,8 @@ export class MainScene extends Phaser.Scene {
       this.menuButton.setDisplaySize(40 * scale, 40 * scale);
       // Счёт
       let x = padding;
-      this.scoreText.setPosition(x, topY);
-      x += this.scoreText.width + padding;
+      this.scoreText.setPosition(x, topY); // фиксированная ширина, выравнивание по правому краю, но блок у левого края
+      x += 120 + padding;
       // Способности
       this.abilityExplodeIcon.setPosition(x + 24 * scale, topY + 16 * scale);
       x += 48 * scale + padding;
