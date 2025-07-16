@@ -51,6 +51,18 @@ declare global {
 const tg = window.Telegram?.WebApp;
 if (tg) {
   tg.ready();
+  // --- Отправка события входа пользователя ---
+  if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+    const user = tg.initDataUnsafe.user;
+    fetch('http://localhost:3001/user-visit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: user.id.toString(),
+        username: user.username || (user.first_name + (user.last_name ? ' ' + user.last_name : ''))
+      })
+    });
+  }
   // Кастомизация кнопки
   tg.MainButton.setText('🔄 ' + (window.t ? window.t('restart') : 'Рестарт'));
   tg.MainButton.show();

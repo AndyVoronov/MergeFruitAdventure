@@ -20,3 +20,11 @@ model Leaderboard {
   score     Int
   createdAt DateTime @default(now())
 }
+
+model User {
+  id           String   @id // userId из Telegram
+  username     String
+  lastVisit    DateTime @updatedAt
+  visitsCount  Int      @default(1)
+  roundsCount  Int      @default(0)
+}
