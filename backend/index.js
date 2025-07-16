@@ -11,6 +11,8 @@ const supabaseUrl = 'https://qoefhhylwyjdofvwrdcw.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFvZWZoaHlsd3lqZG9mdndyZGN3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI1ODIzNzksImV4cCI6MjA2ODE1ODM3OX0.9CexVkY2bV8gfC8ivAtPG-F0VQBUa-AYBA12CHSqTgw';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+console.log('=== Backend starting ===');
+
 // Добавить/обновить результат игрока
 app.post('/leaderboard', async (req, res) => {
   const { id, username, score } = req.body;
@@ -90,37 +92,49 @@ app.get('/leaderboard/:id', async (req, res) => {
 
 // --- Новый endpoint: регистрация входа пользователя ---
 app.post('/user-visit', async (req, res) => {
-  const { id, username } = req.body;
-  if (!id || !username) return res.status(400).json({ error: 'id и username обязательны' });
-  // Проверяем, есть ли пользователь
-  const { data: user, error: getError } = await supabase
-    .from('users')
-    .select('*')
-    .eq('id', id)
-    .single();
-  if (getError && getError.code !== 'PGRST116') {
-    // Не ошибка "Not found"
-    return res.status(500).json({ error: getError.message });
-  }
-  if (user) {
-    // Обновляем visits_count и last_visit
-    const { error: updateError } = await supabase
+  try {
+    const { id, username } = req.body;
+    if (!id || !username) return res.status(400).json({ error: 'id и username обязательны' });
+    // Проверяем, есть ли пользователь
+    const { data: user, error: getError } = await supabase
       .from('users')
-      .update({
-        username,
-        last_visit: new Date().toISOString(),
-        visits_count: user.visits_count + 1
-      })
-      .eq('id', id);
-    if (updateError) return res.status(500).json({ error: updateError.message });
-    return res.json({ status: 'updated' });
-  } else {
-    // Создаём нового пользователя
-    const { error: insertError } = await supabase
-      .from('users')
-      .insert([{ id, username, last_visit: new Date().toISOString(), visits_count: 1, rounds_count: 0 }]);
-    if (insertError) return res.status(500).json({ error: insertError.message });
-    return res.json({ status: 'created' });
+      .select('*')
+      .eq('id', id)
+      .single();
+    if (getError && getError.code !== 'PGRST116') {
+      // Не ошибка "Not found"
+      console.error('user-visit getError:', getError);
+      return res.status(500).json({ error: getError.message });
+    }
+    if (user) {
+      // Обновляем visits_count и last_visit
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({
+          username,
+          last_visit: new Date().toISOString(),
+          visits_count: user.visits_count + 1
+        })
+        .eq('id', id);
+      if (updateError) {
+        console.error('user-visit updateError:', updateError);
+        return res.status(500).json({ error: updateError.message });
+      }
+      return res.json({ status: 'updated' });
+    } else {
+      // Создаём нового пользователя
+      const { error: insertError } = await supabase
+        .from('users')
+        .insert([{ id, username, last_visit: new Date().toISOString(), visits_count: 1, rounds_count: 0 }]);
+      if (insertError) {
+        console.error('user-visit insertError:', insertError);
+        return res.status(500).json({ error: insertError.message });
+      }
+      return res.json({ status: 'created' });
+    }
+  } catch (e) {
+    console.error('user-visit error:', e);
+    res.status(500).json({ error: e.message });
   }
 });
 

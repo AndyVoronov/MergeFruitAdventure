@@ -54,7 +54,7 @@ if (tg) {
   // --- Отправка события входа пользователя ---
   if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
     const user = tg.initDataUnsafe.user;
-    fetch('http://localhost:3001/user-visit', {
+    fetch('https://mergefruitadventure.onrender.com/user-visit', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
